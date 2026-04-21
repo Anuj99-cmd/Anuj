@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Chat Platform</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body, html { height: 100%; background: #e5ddd5; overflow: hidden; }
+
+        /* Login Screen */
+        #login-screen {
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+            background: linear-gradient(135deg, #00b4db, #0083b0);
+        }
+        .login-card {
+            background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center; width: 320px;
+        }
+        input[type="text"] {
+            width: 100%; padding: 12px; margin: 20px 0; border: 1px solid #ddd; border-radius: 8px; outline: none;
+        }
+        .btn-join {
+            width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer;
+            background: #075e54; color: white; font-weight: bold; font-size: 16px;
+        }
+
+        /* Chat Platform Layout */
+        #chat-platform { display: none; height: 100vh; width: 100vw; flex-direction: row; }
+
+        /* Movable Sidebar Panel */
+        .user-sidebar {
+            background: #ffffff; min-width: 150px; width: 280px; max-width: 500px;
+            display: flex; flex-direction: column; height: 100%; position: relative;
+        }
+        .sidebar-header { padding: 20px; font-weight: bold; background: #ededed; border-bottom: 1px solid #ddd; }
+        
+        #user-list { list-style: none; overflow-y: auto; flex-grow: 1; }
+        .user-item { padding: 15px 20px; border-bottom: 1px solid #f2f2f2; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .user-item:hover { background: #f5f5f5; }
+        .status-dot { width: 10px; height: 10px; background: #4caf50; border-radius: 50%; }
+
+        /* The Dragger (Movable edge) */
+        .resizer {
+            width: 5px; cursor: col-resize; background: #ddd; transition: background 0.3s;
+        }
+        .resizer:hover { background: #075e54; }
+
+        /* Chat Area */
+        .chat-area { flex-grow: 1; display: flex; flex-direction: column; background: #e5ddd5; position: relative; }
+        .chat-header { padding: 15px 25px; background: #ededed; border-bottom: 1px solid #ddd; font-weight: bold; }
+        
+        /* Scrollable Message Container */
+        #message-container {
+            flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Classic chat pattern */
+        }
+
+        /* Suitable Chat Bubbles */
+        .msg { padding: 8px 12px; border-radius: 8px; max-width: 65%; font-size: 14.5px; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .msg.sent { background: #dcf8c6; align-self: flex-end; border-top-right-radius: 0; }
+        .msg.received { background: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
+        .timestamp { font-size: 10px; color: #888; margin-top: 4px; text-align: right; }
+
+        /* Bottom Input */
+        .input-bar { padding: 10px 20px; background: #f0f0f0; display: flex; gap: 10px; align-items: center; }
+        #message-input { flex-grow: 1; padding: 12px 18px; border: none; border-radius: 20px; outline: none; font-size: 15px; }
+        .send-btn { background: #075e54; color: white; border: none; padding: 10px 20px; border-radius: 50px; cursor: pointer; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-card">
+            <h2 style="color: #075e54;">Global Chat</h2>
+            <p style="color: #666; font-size: 14px;">Enter your name to start chatting</p>
+            <input type="text" id="username-input" placeholder="Username..." required>
+            <button class="btn-join" onclick="joinChat()">JOIN NOW</button>
+        </div>
+    </div>
+
+    <div id="chat-platform">
+        <div class="user-sidebar" id="sidebar">
+            <div class="sidebar-header">Online Users</div>
+            <ul id="user-list">
+                <li class="user-item"><span class="status-dot"></span> General Room</li>
+                <li class="user-item"><span class="status-dot"></span> System Bot</li>
+                <li class="user-item"><span class="status-dot" style="background:#ccc;"></span> User_102 (Offline)</li>
+            </ul>
+        </div>
+
+        <div class="resizer" id="dragMe"></div>
+
+        <div class="chat-area">
+            <div class="chat-header" id="chat-title">General Room</div>
+            <div id="message-container">
+                <div class="msg received">
+                    Hello! Welcome to the chat platform.
+                    <div class="timestamp">10:00 AM</div>
+                </div>
+            </div>
+            <div class="input-bar">
+                <input type="text" id="message-input" placeholder="Type a message...">
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginScreen = document.getElementById('login-screen');
+        const chatPlatform = document.getElementById('chat-platform');
+        const messageContainer = document.getElementById('message-container');
+        const messageInput = document.getElementById('message-input');
+        const sidebar = document.getElementById('sidebar');
+        const resizer = document.getElementById('dragMe');
+
+        // 1. Join Logic
+        function joinChat() {
+            const user = document.getElementById('username-input').value.trim();
+            if(user !== "") {
+                loginScreen.style.display = 'none';
+                chatPlatform.style.display = 'flex';
+            }
+        }
+
+        // 2. Messaging Logic
+        function sendMessage() {
+            const text = messageInput.value.trim();
+            if(text !== "") {
+                const now = new Date();
+                const timeStr = now.getHours() + ":" + now.getMinutes().toString().padStart(2, '0');
+                
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'msg sent';
+                msgDiv.innerHTML = `${text}<div class="timestamp">${timeStr}</div>`;
+                
+                messageContainer.appendChild(msgDiv);
+                messageInput.value = "";
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+        }
+
+        // 3. MOVABLE SIDEBAR LOGIC (Resizing)
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', () => {
+                isResizing = false;
+                document.removeEventListener('mousemove', handleMouseMove);
+            });
+        });
+
+        function handleMouseMove(e) {
+            if (!isResizing) return;
+            const newWidth = e.clientX;
+            if (newWidth > 150 && newWidth < 500) {
+                sidebar.style.width = newWidth + 'px';
+            }
+        }
+
+        // Enter key to send
+        messageInput.addEventListener("keypress", (e) => { if(e.key === "Enter") sendMessage(); });
+    </script>
+</body>
+</html>
